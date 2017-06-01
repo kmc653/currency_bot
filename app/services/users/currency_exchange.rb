@@ -24,7 +24,8 @@ module Users
       def default_keyboard
         [
           %w(USD EUR),
-          %w(JPY CNY)
+          %w(JPY CNY),
+          %w(SGD KRW)
         ]
       end
   end

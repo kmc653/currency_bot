@@ -10,11 +10,7 @@ module Api
                                        method: :get).run
       return false unless response.code == 200
 
-      File.open("input.csv", "w", col_sep: "$", encoding: "utf-8") do |f|
-        f.write response.body.force_encoding("utf-8")
-      end
-
-      @result = CSV.parse(response.body).to_json
+      @result = CSV.parse(response.body.force_encoding("utf-8")).to_json
       @result = Oj.load(@result)
       save_currency_to_redis
       true
@@ -27,7 +23,7 @@ module Api
         @result.each_with_index do |value, index|
           Caching.currency.hset value[0], "buy", value[2]
           Caching.currency.hset value[0], "sell", value[12]
-          Caching.currency.expire value[0], 1.day.to_i
+          Caching.currency.expire value[0], 6.hour.to_i
         end
       end
   end

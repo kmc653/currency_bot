@@ -14,23 +14,6 @@ class WebhooksController < ApplicationController
   def callback
     if callback_command?
       set_webhook_attributes
-
-      # case @data
-      # when /arrange/
-      #   Washers::WasherArrangement.new(@chat_id, @message_id, @data).respond
-      # when /notify/
-      #   Washers::ArrangementNotify.new.respond(@chat_id, @message_id, @data)
-      # when /package-info/
-      #   Washers::PackageInfo.new(@chat_id, @message_id, @data).respond
-      # when /package-state/
-      #   Washers::PackageState.new(@chat_id, @message_id, @data).respond
-      # when /get-package/
-      #   Washers::GetPackage.new(@chat_id, @message_id, @data).respond
-      # when /leave/
-      #   Washers::WasherLeave.new(@chat_id, @message_id, @data).respond
-      # else
-      #   Bots::EditMessage.new(@chat_id, @message_id, @data).call
-      # end
     else
       render_bot_commmands
     end

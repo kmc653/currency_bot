@@ -1,13 +1,14 @@
 require 'telegram/bot'
 
 module Users
-  class CheckCurrency
+  class CurrencyNotify
 
     CURRENCY_BOT_TOKEN = "308381021:AAF4N8eQ3EwDtQUgWS8_IKyHp6wtVrMr3_k"
 
-    def initialize(chat_id, message_id)
+    def initialize(chat_id, message_id, message=nil)
       @chat_id = chat_id
       @message_id = message_id
+      @message = message
     end
 
     def call
@@ -19,7 +20,23 @@ module Users
       end
     end
 
+    def set
+      set_currency_notify_rate_in_redis
+
+      Telegram::Bot::Client.run(CURRENCY_BOT_TOKEN) do |bot|
+        bot.api.sendMessage(chat_id: @chat_id, text: rate_message)
+      end
+    end
+
     private
+
+      def rate_message
+        "已設定匯率：#{@message}"
+      end
+
+      def set_currency_notify_rate_in_redis
+        Caching.currency_notify_rate.rpush @chat_id, @message
+      end
 
       def default_keyboard
         [

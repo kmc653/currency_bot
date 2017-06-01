@@ -5,9 +5,10 @@ module Users
 
     CURRENCY_BOT_TOKEN = "308381021:AAF4N8eQ3EwDtQUgWS8_IKyHp6wtVrMr3_k"
 
-    def initialize(chat_id, message_id)
+    def initialize(chat_id, message_id, message=nil)
       @chat_id = chat_id
       @message_id = message_id
+      @message = message
     end
 
     def twd
@@ -18,45 +19,63 @@ module Users
     end
 
     def other
+      message = "請輸入欲換外幣總額"
+      Telegram::Bot::Client.run(CURRENCY_BOT_TOKEN) do |bot|
+        bot.api.sendMessage(chat_id: @chat_id, text: message)
+      end
+    end
+
+    def calculate
+      user_state = get_user_state_in_redis
+      return unless user_state.eql?("currency_exchange")
+
+      exchange_type = get_exchange_type_in_redis
+      currency = get_exchange_currency_in_redis
+      calculate_result(exchange_type, currency)
     end
 
     private
 
-      # def count_currency_exchange
-      #   message = "請選擇以下換算方式"
-      #   Telegram::Bot::Client.run(CURRENCY_BOT_TOKEN) do |bot|
-      #     markup = Telegram::Bot::Types::ReplyKeyboardMarkup.new(keyboard: default_keyboard,
-      #                                                            resize_keyboard: true)
-      #     bot.api.sendMessage(chat_id: @chat_id, text: message, reply_markup: markup)
-      #   end
-      # end
-      #
-      # def show_currency_rate
-      #   get_currency_rate
-      #   Telegram::Bot::Client.run(CURRENCY_BOT_TOKEN) do |bot|
-      #     bot.api.sendMessage(chat_id: @chat_id, text: currency_rate_message)
-      #   end
-      # end
-      #
-      # def currency_rate_message
-      #   "#{@message}\n銀行買入：#{@buy_rate}\n銀行賣出：#{@sell_rate}"
-      # end
-      #
-      # def get_currency_rate
-      #   @buy_rate = Caching.currency.hget @message, "buy"
-      #   @sell_rate = Caching.currency.hget @message, "sell"
-      # end
-      #
-      # def check_currency?
-      #   state = Caching.state.hget @chat_id, "status"
-      #   state.to_s == "check_currency"
-      # end
-      #
-      # def default_keyboard
-      #   [
-      #     %w(輸入台幣總額),
-      #     %w(輸入外幣總額)
-      #   ]
-      # end
+      def calculate_result(type, currency)
+        return unless type
+
+        case type
+        when "twd"
+          rate = Caching.currency.hget currency, "sell"
+          amount = @message.to_f / rate.to_f
+
+          Telegram::Bot::Client.run(CURRENCY_BOT_TOKEN) do |bot|
+            bot.api.sendMessage(chat_id: @chat_id, text: show_amount(amount, currency))
+          end
+        when "other"
+          rate = Caching.currency.hget currency, "sell"
+          amount = rate.to_f * @message.to_f
+
+          Telegram::Bot::Client.run(CURRENCY_BOT_TOKEN) do |bot|
+            bot.api.sendMessage(chat_id: @chat_id, text: show_amount(amount, "TWD"))
+          end
+        end
+      end
+
+      def show_amount(amount, currency)
+        case currency
+        when "TWD"
+          "需準備 #{amount.round} TWD"
+        else
+          "可換得 #{amount.round} #{currency}"
+        end
+      end
+
+      def get_user_state_in_redis
+        Caching.state.hget @chat_id, "status"
+      end
+
+      def get_exchange_type_in_redis
+        Caching.state.hget @chat_id, "type"
+      end
+
+      def get_exchange_currency_in_redis
+        Caching.state.hget @chat_id, "currency"
+      end
   end
 end
